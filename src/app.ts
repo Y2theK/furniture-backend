@@ -5,8 +5,8 @@ import compression from "compression";
 import cors from 'cors';
 import morgan from "morgan"; // logging request
 import { limiter } from "./middlewares/rateLimiter";
-import { check } from "./middlewares/check";
 import { Request, Response } from "express";
+import healthRoutes from "./routes/v1/health";
 
 // everythings is middlewares in express
 export const app = express(); // application object
@@ -19,17 +19,7 @@ app.use(compression()); // compress/zip response payload
 app.use(limiter);
 app.use(cors());
 
-interface CustomRequest extends Request {
-    userId?: number,
-};
-
-// custom middleware
-app.get('/health',check, (req:CustomRequest, res:Response) => {
-    res.status(200).json({
-        message: "Server is running good.", 
-        userId: req.userId
-    });
-})
+app.use("/api/v1", healthRoutes);
 
 // error handling
 app.use((error: any,req: Request,res: Response, next: NextFunction) => {
