@@ -1,11 +1,8 @@
-import express from "express";
+import { app } from "./app";
 
-// everythings is middleware in express
-const app = express();
-app.get('/', (req,res) => {
-    res.send("Hello World");
-    res.end();
-})
-app.listen(8080,() => {
-    console.log("Server is running at port " + 8080);
+import "dotenv/config";
+
+const PORT = process.env.PORT || 4000;
+app.listen(process.env.PORT, () => {
+    console.log(`Server is running at port ${PORT}`);
 })
