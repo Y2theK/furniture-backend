@@ -1,25 +1,23 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { genSalt, hash } from "bcrypt";
+import { faker } from "@faker-js/faker";
 
 const prisma = new PrismaClient();
 
-const userData: Prisma.UserCreateInput[] = [
-  {
-    phone: "777777777",
+function createRandomUser() {
+  return {
+    firstName: faker.person.firstName(),
+    lastName: faker.person.lastName(),
+    email: faker.internet.email(),
+    phone: faker.phone.number({ style: "international" }),
+    randToken: faker.internet.jwt(),
     password: "",
-    randToken: "esadgfasdfaawer",
-  },
-  {
-    phone: "777722779",
-    password: "",
-    randToken: "esadgfasdfaawer",
-  },
-  {
-    phone: "777722772",
-    password: "",
-    randToken: "esadgfasdfaawer",
-  },
-];
+  };
+}
+
+const userData = faker.helpers.multiple(createRandomUser, {
+  count: 10, // number of users
+});
 
 async function main() {
   console.log("Start seeding...");
