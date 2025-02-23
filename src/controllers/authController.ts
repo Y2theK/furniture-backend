@@ -3,9 +3,11 @@ import { NextFunction, Request, Response } from "express";
 import { body, validationResult } from "express-validator";
 import {
   createOTP,
+  createUser,
   getOtpByPhone,
   getUserByPhone,
   updateOTP,
+  updateUser,
 } from "../services/authService";
 import {
   checkOtpErrorIfSameDate,
@@ -15,6 +17,7 @@ import {
 import { generateOTP, generateToken } from "../util/generate";
 import { compare, genSalt, hash } from "bcrypt";
 import moment from "moment";
+import jwt from "jsonwebtoken";
 export const register = [
   body("phone", "Invalid phone number")
     .trim()
@@ -186,13 +189,105 @@ export const verifyOtp = [
   },
 ];
 
-export const confirmPassword = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  res.json({ message: "Confirm Password" });
-};
+export const confirmPassword = [
+  body("phone", "Invalid phone number")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 5, max: 12 })
+    .withMessage("Phone number must be between 5 and 10 digits"),
+  body("password", "Invalid Password")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 8, max: 8 }),
+  body("token", "Invalid token").trim().notEmpty().escape(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      const error: any = new Error(errors[0].msg);
+      error.status = 400;
+      error.code = "VALIDATION_ERROR";
+      return next(error);
+    }
+
+    const { phone, token, password } = req.body;
+    const user = getOtpByPhone(phone);
+    checkUserExists(user);
+
+    const otpRow: any = getOtpByPhone(phone);
+    checkOtpRow(otpRow);
+
+    if (otpRow.error === 5) {
+      const error: any = new Error("This attack may be an attack.");
+      error.status = 400;
+      error.code = "Error_BadRequest";
+      return next(error);
+    }
+
+    if (!otpRow.verifyToken !== token) {
+      await updateOTP(otpRow.id, {
+        error: 5,
+      });
+      const error: any = new Error("Invalid token.");
+      error.status = 400;
+      error.code = "Error_Invalid";
+      return next(error);
+    }
+
+    const isOtpExpire = moment().diff(otpRow.updatedAt, "minutes") > 10;
+    if (isOtpExpire) {
+      const error: any = new Error("Request expired.");
+      error.status = 400;
+      error.code = "Error_Expired";
+      return next(error);
+    }
+
+    const salt = await genSalt(10);
+    const hashPassword = await hash(password, salt);
+    const randToken = generateToken();
+
+    const newUser = await createUser({
+      phone,
+      password: hashPassword,
+      randToken,
+    });
+
+    // jwt token
+    const accessPayload = {
+      id: newUser.id,
+    };
+    const refreshPayload = {
+      id: newUser.id,
+      phone: newUser.phone,
+    };
+    const accessToken = jwt.sign(
+      accessPayload,
+      process.env.ACCESS_TOKEN_SECRET!,
+      {
+        expiresIn: 60 * 15,
+      }
+    );
+    const refreshToken = jwt.sign(
+      refreshPayload,
+      process.env.REFRESH_TOKEN_SECRET!,
+      {
+        expiresIn: "30d",
+      }
+    );
+
+    await updateUser(newUser.id, {
+      randToken: refreshToken,
+    });
+
+    res.status(200).json({
+      message: "Successfully created an account",
+      userId: newUser.id,
+      accessToken,
+      refreshToken,
+    });
+  },
+];
 
 export const login = async (
   req: Request,
