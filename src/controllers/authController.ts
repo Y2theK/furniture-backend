@@ -13,6 +13,7 @@ import {
   checkOtpErrorIfSameDate,
   checkOtpRow,
   checkUserExists,
+  checkUserIfNotExist,
 } from "../util/auth";
 import { generateOTP, generateToken } from "../util/generate";
 import { compare, genSalt, hash } from "bcrypt";
@@ -305,13 +306,122 @@ export const confirmPassword = [
   },
 ];
 
-export const login = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  res.json({ message: "Login" });
-};
+export const login = [
+  body("phone", "Invalid phone number")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 5, max: 12 })
+    .withMessage("Phone number must be between 5 and 10 digits"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      const error: any = new Error(errors[0].msg);
+      error.status = 400;
+      error.code = "VALIDATION_ERROR";
+      return next(error);
+    }
+
+    let phone = req.body.phone;
+    const password = req.body.password;
+    if (phone.slice(0, 2) === "09") {
+      phone = phone.substring(2, phone.length);
+    }
+
+    const user: any = await getUserByPhone(phone);
+    checkUserIfNotExist(user);
+
+    // if user status is freeze
+    if (user.status === "FREEZE") {
+      const error: any = new Error(
+        "Your accound is temporary lock. Please contact us."
+      );
+      error.status = 400;
+      error.code = "Error_Freeze";
+      return next(error);
+    }
+    const isMatchPassword = await compare(password, user.password);
+
+    // if password match
+    if (!isMatchPassword) {
+      const lastRequest = new Date(user.updatedAt).toLocaleDateString();
+      const isSameDate = lastRequest === new Date().toLocaleDateString();
+
+      if (!isSameDate) {
+        await updateUser(user.id, {
+          errorLoginCount: 1,
+        });
+      } else {
+        let userData;
+        if (user.errorLoginCount >= 2) {
+          userData = {
+            status: "FREEZE",
+          };
+        } else {
+          userData = {
+            errorLoginCount: {
+              increment: 1,
+            },
+          };
+        }
+        await updateUser(user.id, userData);
+      }
+
+      const error: any = new Error("Invalid Credentials.");
+      error.status = 400;
+      error.code = "Error_BadRequest";
+      return next(error);
+    }
+
+    // jwt token
+    const accessPayload = {
+      id: user.id,
+    };
+    const refreshPayload = {
+      id: user.id,
+      phone: user.phone,
+    };
+    const accessToken = jwt.sign(
+      accessPayload,
+      process.env.ACCESS_TOKEN_SECRET!,
+      {
+        expiresIn: 60 * 15, // 15 min
+      }
+    );
+    const refreshToken = jwt.sign(
+      refreshPayload,
+      process.env.REFRESH_TOKEN_SECRET!,
+      {
+        expiresIn: "30d", // 30 days
+      }
+    );
+
+    await updateUser(user.id, {
+      randToken: refreshToken,
+      errorLoginCount: 0, // reset error count
+    });
+
+    // to tell browser to store as https-only cookies
+    res
+      .cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        maxAge: 15 * 60 * 1000, // 15 min
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      })
+      .status(200)
+      .json({
+        message: "Successfully login.",
+        userId: user.id,
+      });
+  },
+];
 
 export const logout = async (
   req: Request,

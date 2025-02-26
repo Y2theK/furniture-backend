@@ -7,6 +7,15 @@ export const checkUserExists = (user: any) => {
   }
 };
 
+export const checkUserIfNotExist = (user: any) => {
+  if (!user) {
+    const error: any = new Error("User not exists.");
+    error.status = 409;
+    error.code = "NOT_EXISTS";
+    throw error;
+  }
+};
+
 export const checkOtpErrorIfSameDate = (
   isSameDate: boolean,
   errorCount: number
