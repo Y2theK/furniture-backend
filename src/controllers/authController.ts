@@ -18,6 +18,7 @@ import { generateOTP, generateToken } from "../util/generate";
 import { compare, genSalt, hash } from "bcrypt";
 import moment from "moment";
 import jwt from "jsonwebtoken";
+
 export const register = [
   body("phone", "Invalid phone number")
     .trim()
@@ -46,12 +47,14 @@ export const register = [
     // if sms OTP cannot be sent, return error
     // save OTP to database - with hash and expirty time
 
-    const otp = generateOTP();
+    // const otp = generateOTP();
+    const otp = "123123";
     const salt = await genSalt(10);
     const hashOtp = await hash(otp.toString(), salt);
+    // const hashOtp = "123123";
     const token = generateToken();
 
-    const otpRow: any = getOtpByPhone(phone);
+    const otpRow: any = await getOtpByPhone(phone);
     let result;
 
     if (!otpRow) {
@@ -143,7 +146,7 @@ export const verifyOtp = [
       await updateOTP(otpRow.id, {
         count: 5,
       });
-      const error: any = new Error("Invalid toke");
+      const error: any = new Error("Invalid token");
       error.status = 400;
       error.code = "Error_Invalid";
       return next(error);
@@ -199,7 +202,6 @@ export const confirmPassword = [
   body("password", "Invalid Password")
     .trim()
     .notEmpty()
-    .matches("^[0-9]+$")
     .isLength({ min: 8, max: 8 }),
   body("token", "Invalid token").trim().notEmpty().escape(),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -212,10 +214,11 @@ export const confirmPassword = [
     }
 
     const { phone, token, password } = req.body;
-    const user = getOtpByPhone(phone);
+    const user = await getUserByPhone(phone);
+
     checkUserExists(user);
 
-    const otpRow: any = getOtpByPhone(phone);
+    const otpRow: any = await getOtpByPhone(phone);
     checkOtpRow(otpRow);
 
     if (otpRow.error === 5) {
@@ -225,7 +228,7 @@ export const confirmPassword = [
       return next(error);
     }
 
-    if (!otpRow.verifyToken !== token) {
+    if (otpRow.verifyToken !== token) {
       await updateOTP(otpRow.id, {
         error: 5,
       });
@@ -280,12 +283,25 @@ export const confirmPassword = [
       randToken: refreshToken,
     });
 
-    res.status(200).json({
-      message: "Successfully created an account",
-      userId: newUser.id,
-      accessToken,
-      refreshToken,
-    });
+    // to tell browser to store as https-only cookies
+    res
+      .cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        maxAge: 15 * 60 * 1000,
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      })
+      .status(200)
+      .json({
+        message: "Successfully created an account",
+        userId: newUser.id,
+      });
   },
 ];
 
