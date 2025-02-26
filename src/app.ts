@@ -5,10 +5,12 @@ import compression from "compression";
 import cors from "cors";
 import morgan from "morgan"; // logging request
 import { limiter } from "./middlewares/rateLimiter";
+import auth from "./middlewares/auth";
 import { Request, Response } from "express";
 import healthRoutes from "./routes/v1/health";
 import AuthRoutes from "./routes/v1/auth";
-
+import AdminRoutes from "./routes/v1/admin/admin";
+import cookieParser from "cookie-parser";
 // everythings is middlewares in express
 export const app = express(); // application object
 
@@ -19,15 +21,16 @@ app.use(helmet()); // secure request header
 app.use(compression()); // compress/zip response payload
 app.use(limiter);
 app.use(cors());
-
+app.use(cookieParser());
 app.use("/api/v1", healthRoutes);
 app.use("/api/v1", AuthRoutes);
+app.use("/api/v1/admin", auth, AdminRoutes);
 
 // error handling
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
   const status = error.status || 500;
   const message = error.message || "Something went wrong.";
-  const errorCode = error.errorCode || "Error_Code";
+  const errorCode = error.code || "Error_Code";
 
   res.status(status).json({
     message,
