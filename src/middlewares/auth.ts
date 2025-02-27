@@ -44,10 +44,6 @@ const auth = (req: CustomRequest, res: Response, next: NextFunction) => {
 
     return next(error);
   }
-
-  res.status(200).json({
-    message: "Get All Users",
-  });
 };
 
 export default auth;

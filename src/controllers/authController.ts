@@ -4,6 +4,7 @@ import {
   createOTP,
   createUser,
   getOtpByPhone,
+  getUserById,
   getUserByPhone,
   updateOTP,
   updateUser,
@@ -427,5 +428,40 @@ export const logout = async (
   res: Response,
   next: NextFunction
 ) => {
-  res.json({ message: "Logout" });
+  const refreshToken = req.cookies ? req.cookies.refreshToken : null;
+
+  if (!refreshToken) {
+    const error: any = new Error("You are not an authenticated user");
+    error.status = 401;
+    error.code = "Error_Unauthenticated";
+    return next(error);
+  }
+
+  // verify jwt access token
+  let decoded: any;
+  try {
+    decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!);
+  } catch (err: any) {
+    const error: any = new Error("You are not an authenticated user");
+    error.status = 401;
+    error.code = "Error_Unauthenticated";
+    return next(error);
+  }
+
+  const user: any = await getUserById(decoded.id);
+  checkUserIfNotExist(user);
+
+  if (user.phone !== decoded.phone) {
+    const error: any = new Error("You are not an authenticated user");
+    error.status = 401;
+    error.code = "Error_Unauthenticated";
+    return next(error);
+  }
+
+  await updateUser(user.id, {
+    randToken: generateToken(),
+  });
+  res.clearCookie("refreshToken");
+  res.clearCookie("accessToken");
+  res.status(200).json({ message: "Logout successfully" });
 };
