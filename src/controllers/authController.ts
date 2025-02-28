@@ -19,6 +19,7 @@ import { generateOTP, generateToken } from "../util/generate";
 import { compare, genSalt, hash } from "bcrypt";
 import moment from "moment";
 import jwt from "jsonwebtoken";
+import { errorCode } from "../config/errorCode";
 
 export const register = [
   body("phone", "Invalid phone number")
@@ -32,7 +33,7 @@ export const register = [
     if (errors.length > 0) {
       const error: any = new Error(errors[0].msg);
       error.status = 400;
-      error.code = "VALIDATION_ERROR";
+      error.code = errorCode.invalid;
       return next(error);
     }
 
@@ -87,7 +88,7 @@ export const register = [
             "OTP is allowed to request 3 times per day."
           );
           error.status = 405;
-          error.code = "Error_OverLimit";
+          error.code = errorCode.overLimit;
           return next(error);
         }
 
@@ -126,7 +127,7 @@ export const verifyOtp = [
     if (errors.length > 0) {
       const error: any = new Error(errors[0].msg);
       error.status = 400;
-      error.code = "VALIDATION_ERROR";
+      error.code = errorCode.invalid;
       return next(error);
     }
 
@@ -149,7 +150,7 @@ export const verifyOtp = [
       });
       const error: any = new Error("Invalid token");
       error.status = 400;
-      error.code = "Error_Invalid";
+      error.code = errorCode.invalid;
       return next(error);
     }
 
@@ -157,7 +158,7 @@ export const verifyOtp = [
     if (isOtpExpire) {
       const error: any = new Error("OTP is expired");
       error.status = 400;
-      error.code = "Error_Expired";
+      error.code = errorCode.otpExpired;
       return next(error);
     }
 
@@ -176,7 +177,7 @@ export const verifyOtp = [
       }
       const error: any = new Error("OTP is wrong");
       error.status = 400;
-      error.code = "Error_Invalid";
+      error.code = errorCode.invalid;
       return next(error);
     }
 
@@ -318,7 +319,7 @@ export const login = [
     if (errors.length > 0) {
       const error: any = new Error(errors[0].msg);
       error.status = 400;
-      error.code = "VALIDATION_ERROR";
+      error.code = errorCode.invalid;
       return next(error);
     }
 
@@ -337,7 +338,7 @@ export const login = [
         "Your accound is temporary lock. Please contact us."
       );
       error.status = 400;
-      error.code = "Error_Freeze";
+      error.code = errorCode.accountFreeze;
       return next(error);
     }
     const isMatchPassword = await compare(password, user.password);
@@ -369,7 +370,7 @@ export const login = [
 
       const error: any = new Error("Invalid Credentials.");
       error.status = 400;
-      error.code = "Error_BadRequest";
+      error.code = errorCode.invalid;
       return next(error);
     }
 
@@ -433,7 +434,7 @@ export const logout = async (
   if (!refreshToken) {
     const error: any = new Error("You are not an authenticated user");
     error.status = 401;
-    error.code = "Error_Unauthenticated";
+    error.code = errorCode.unauthenticated;
     return next(error);
   }
 
@@ -444,7 +445,7 @@ export const logout = async (
   } catch (err: any) {
     const error: any = new Error("You are not an authenticated user");
     error.status = 401;
-    error.code = "Error_Unauthenticated";
+    error.code = errorCode.unauthenticated;
     return next(error);
   }
 
@@ -454,7 +455,7 @@ export const logout = async (
   if (user.phone !== decoded.phone) {
     const error: any = new Error("You are not an authenticated user");
     error.status = 401;
-    error.code = "Error_Unauthenticated";
+    error.code = errorCode.unauthenticated;
     return next(error);
   }
 
