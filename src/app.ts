@@ -14,13 +14,29 @@ import cookieParser from "cookie-parser";
 // everythings is middlewares in express
 export const app = express(); // application object
 
+var whitelist = ["http://example1.com", "http://localhost:5173"];
+var corsOptions = {
+  origin: function (
+    origin: any,
+    callback: (err: Error | null, origin?: any) => void
+  ) {
+    if (!origin) return callback(null, true); // allow request with no origin like mobile or curl or postman
+    if (whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credential: true, // allow cookies or authentication header
+};
+
 app.use(morgan("dev")); // dev - format
 app.use(express.urlencoded({ extended: true })); // parse request bodies to req.body object
 app.use(express.json()); // parse json format to javascript
 app.use(helmet()); // secure request header
 app.use(compression()); // compress/zip response payload
 app.use(limiter);
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use("/api/v1", healthRoutes);
 app.use("/api/v1", AuthRoutes);
