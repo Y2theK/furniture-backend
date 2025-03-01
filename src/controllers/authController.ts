@@ -449,6 +449,13 @@ export const logout = async (
     return next(error);
   }
 
+  if (!isNaN(decoded.id)) {
+    const error: any = new Error("You are not an authenticated user");
+    error.status = 401;
+    error.code = errorCode.unauthenticated;
+    return next(error);
+  }
+
   const user: any = await getUserById(decoded.id);
   checkUserIfNotExist(user);
 
