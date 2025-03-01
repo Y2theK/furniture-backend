@@ -270,7 +270,7 @@ export const confirmPassword = [
       accessPayload,
       process.env.ACCESS_TOKEN_SECRET!,
       {
-        expiresIn: 60 * 15,
+        expiresIn: 60 * 2,
       }
     );
     const refreshToken = jwt.sign(
@@ -291,7 +291,7 @@ export const confirmPassword = [
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-        maxAge: 15 * 60 * 1000,
+        maxAge: 2 * 60 * 1000,
       })
       .cookie("refreshToken", refreshToken, {
         httpOnly: true,
@@ -386,7 +386,7 @@ export const login = [
       accessPayload,
       process.env.ACCESS_TOKEN_SECRET!,
       {
-        expiresIn: 60 * 15, // 15 min
+        expiresIn: 60 * 2, // 15 min
       }
     );
     const refreshToken = jwt.sign(
@@ -408,7 +408,7 @@ export const login = [
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-        maxAge: 15 * 60 * 1000, // 15 min
+        maxAge: 2 * 60 * 1000, // 15 min
       })
       .cookie("refreshToken", refreshToken, {
         httpOnly: true,
