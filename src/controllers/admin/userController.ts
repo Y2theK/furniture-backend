@@ -13,6 +13,6 @@ export const getAllUser = (
   const id = req.userId;
   res.status(200).json({
     currentUser: id,
-    message: "Get All Users",
+    message: req.t("welcome"),
   });
 };

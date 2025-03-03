@@ -26,13 +26,13 @@ const auth = (req: CustomRequest, res: Response, next: NextFunction) => {
         phone: string;
       };
     } catch (err) {
-      const error: any = new Error("You are not an authenticated user");
+      const error: any = new Error("You are not an a authenticated user");
       error.status = 401;
       error.code = errorCode.unauthenticated;
       return next(error);
     }
-    if (!isNaN(decoded.id)) {
-      const error: any = new Error("You are not an authenticated user");
+    if (isNaN(decoded.id)) {
+      const error: any = new Error("You are not an b authenticated user");
       error.status = 401;
       error.code = errorCode.unauthenticated;
       return next(error);
@@ -41,14 +41,14 @@ const auth = (req: CustomRequest, res: Response, next: NextFunction) => {
     checkUserIfNotExist(user);
 
     if (user.phone !== decoded.phone) {
-      const error: any = new Error("You are not an authenticated user");
+      const error: any = new Error("You are not an c authenticated user");
       error.status = 401;
       error.code = errorCode.unauthenticated;
       return next(error);
     }
 
     if (user.randToken !== refreshToken) {
-      const error: any = new Error("You are not an authenticated user");
+      const error: any = new Error("You are not an d authenticated user");
       error.status = 401;
       error.code = errorCode.unauthenticated;
       return next(error);
@@ -106,35 +106,34 @@ const auth = (req: CustomRequest, res: Response, next: NextFunction) => {
     // error.status = 401;
     // error.code = errorCode.accessTokenExpired;
     // return next(error);
-  }
-
-  // verify jwt access token
-  let decoded;
-  try {
-    decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET!) as {
-      id: number;
-    };
-    if (!isNaN(decoded.id)) {
-      const error: any = new Error("You are not an authenticated user");
-      error.status = 401;
-      error.code = errorCode.unauthenticated;
-      return next(error);
+  } else {
+    // verify jwt access token
+    let decoded;
+    try {
+      decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET!) as {
+        id: number;
+      };
+      if (isNaN(decoded.id)) {
+        const error: any = new Error("You are not an e authenticated user");
+        error.status = 401;
+        error.code = errorCode.unauthenticated;
+        return next(error);
+      }
+      req.userId = decoded.id;
+      next();
+    } catch (error: any) {
+      if (error.name === "TokenExpiredError") {
+        generateNewToken();
+        // error.message = "Access Token has expired.";
+        // error.status = 401;
+        // error.code = errorCode.accessTokenExpired;
+      } else {
+        error.message = error.message;
+        error.status = 400;
+        error.code = errorCode.attack;
+        return next(error);
+      }
     }
-    req.userId = decoded.id;
-    next();
-  } catch (error: any) {
-    if (error.name === "TokenExpiredError") {
-      generateNewToken();
-      // error.message = "Access Token has expired.";
-      // error.status = 401;
-      // error.code = errorCode.accessTokenExpired;
-    } else {
-      error.message = "Access Token is Invalid.";
-      error.status = 400;
-      error.code = errorCode.attack;
-    }
-
-    return next(error);
   }
 };
 

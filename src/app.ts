@@ -11,6 +11,10 @@ import healthRoutes from "./routes/v1/health";
 import AuthRoutes from "./routes/v1/auth";
 import AdminRoutes from "./routes/v1/admin/admin";
 import cookieParser from "cookie-parser";
+import i18next from "i18next";
+import Backend from "i18next-fs-backend";
+import middleware from "i18next-http-middleware";
+import path from "path";
 // everythings is middlewares in express
 export const app = express(); // application object
 
@@ -38,6 +42,27 @@ app.use(compression()); // compress/zip response payload
 app.use(limiter);
 app.use(cors(corsOptions));
 app.use(cookieParser());
+// localization middleware
+i18next
+  .use(Backend)
+  .use(middleware.LanguageDetector)
+  .init({
+    backend: {
+      loadPath: path.join(
+        process.cwd(),
+        "src/localization",
+        "{{lng}}",
+        "{{ns}}.json"
+      ),
+    },
+    detection: {
+      order: ["querystring", "cookie"],
+      cache: ["cookie"],
+      fallbackLng: "en",
+      preload: ["en", "mm"],
+    },
+  }); // internationalization
+app.use(middleware.handle(i18next));
 app.use("/api/v1", healthRoutes);
 app.use("/api/v1", AuthRoutes);
 app.use("/api/v1/admin", auth, AdminRoutes);
