@@ -10,6 +10,7 @@ import { Request, Response } from "express";
 import healthRoutes from "./routes/v1/health";
 import AuthRoutes from "./routes/v1/auth";
 import AdminRoutes from "./routes/v1/admin/admin";
+import UserRoutes from "./routes/v1/user/user";
 import cookieParser from "cookie-parser";
 import i18next from "i18next";
 import Backend from "i18next-fs-backend";
@@ -66,6 +67,7 @@ app.use(middleware.handle(i18next));
 app.use("/api/v1", healthRoutes);
 app.use("/api/v1", AuthRoutes);
 app.use("/api/v1/admin", auth, AdminRoutes);
+app.use("/api/v1", UserRoutes);
 
 // error handling
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
