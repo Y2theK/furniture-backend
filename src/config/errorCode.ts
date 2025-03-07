@@ -1,6 +1,7 @@
 export const errorCode = {
   invalid: "Error_Invalid",
   unauthenticated: "Error_Unauthenticated",
+  unauthorized: "Error_Unauthorized",
   attack: "Error_Attack",
   accessTokenExpired: "Error_AccessTokenExpired",
   userExist: "Error_UserAlreadyExist",

@@ -16,6 +16,7 @@ import i18next from "i18next";
 import Backend from "i18next-fs-backend";
 import middleware from "i18next-http-middleware";
 import path from "path";
+import { authorize } from "./middlewares/authorize";
 // everythings is middlewares in express
 export const app = express(); // application object
 
@@ -66,7 +67,7 @@ i18next
 app.use(middleware.handle(i18next));
 app.use("/api/v1", healthRoutes);
 app.use("/api/v1", AuthRoutes);
-app.use("/api/v1/admin", auth, AdminRoutes);
+app.use("/api/v1/admin", auth, authorize(true, "ADMIN"), AdminRoutes);
 app.use("/api/v1", UserRoutes);
 
 // error handling
