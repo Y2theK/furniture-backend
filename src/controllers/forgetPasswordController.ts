@@ -11,11 +11,12 @@ import {
   checkOtpErrorIfSameDate,
   checkOtpRow,
   checkUserExists,
+  checkUserIfNotExist,
 } from "../util/auth";
 import { errorCode } from "../config/errorCode";
 import { generateToken } from "../util/generate";
 import { compare, genSalt } from "bcrypt";
-import { hash } from "crypto";
+import { hash } from "bcrypt";
 import moment from "moment";
 import jwt from "jsonwebtoken";
 
@@ -41,7 +42,7 @@ export const requestOTP = [
     }
     const user = await getUserByPhone(phone);
 
-    checkUserExists(user);
+    checkUserIfNotExist(user);
 
     const otp = "123123";
     const salt = await genSalt(10);
@@ -125,7 +126,7 @@ export const verifyOtpForPassword = [
 
     const { phone, otp, token } = req.body;
     const user = await getUserByPhone(phone);
-    checkUserExists(user);
+    checkUserIfNotExist(user);
 
     const otpRow: any = await getOtpByPhone(phone);
     checkOtpRow(otpRow);
@@ -209,7 +210,7 @@ export const resetPassword = [
 
     const { phone, token, password } = req.body;
     const user: any = await getUserByPhone(phone);
-    checkUserExists(user);
+    checkUserIfNotExist(user);
 
     const otpRow: any = await getOtpByPhone(phone);
     checkOtpRow(otpRow);
@@ -286,12 +287,8 @@ export const resetPassword = [
       })
       .status(200)
       .json({
-        message: "Successfully created an account",
+        message: "Password reset successfully.",
         userId: user.id,
       });
-
-    res.status(200).json({
-      message: "Password reset successfully.",
-    });
   },
 ];

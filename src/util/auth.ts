@@ -34,7 +34,7 @@ export const checkOtpErrorIfSameDate = (
 
 export const checkOtpRow = (otp: any) => {
   if (!otp) {
-    const error: any = new Error("Otp already exists.");
+    const error: any = new Error("Otp row not exists.");
     error.status = 409;
     error.code = errorCode.invalid;
     throw error;
