@@ -7,6 +7,11 @@ import {
   register,
   verifyOtp,
 } from "../../controllers/authController";
+import {
+  requestOTP,
+  verifyOtpForPassword,
+  resetPassword,
+} from "../../controllers/forgetPasswordController";
 
 const router = Router();
 
@@ -17,5 +22,9 @@ router.post("/confirm-password", confirmPassword);
 
 router.post("/login", login);
 router.post("/logout", logout);
+
+router.post("/request-otp", requestOTP);
+router.post("/verify-otp", verifyOtpForPassword);
+router.post("/reset-password", resetPassword);
 
 export default router;
