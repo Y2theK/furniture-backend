@@ -5,18 +5,13 @@ import compression from "compression";
 import cors from "cors";
 import morgan from "morgan"; // logging request
 import { limiter } from "./middlewares/rateLimiter";
-import auth from "./middlewares/auth";
 import { Request, Response } from "express";
-import healthRoutes from "./routes/v1/health";
-import AuthRoutes from "./routes/v1/auth";
-import AdminRoutes from "./routes/v1/admin/admin";
-import UserRoutes from "./routes/v1/user/user";
 import cookieParser from "cookie-parser";
 import i18next from "i18next";
 import Backend from "i18next-fs-backend";
 import middleware from "i18next-http-middleware";
 import path from "path";
-import { authorize } from "./middlewares/authorize";
+import routes from './routes/v1/index';
 // everythings is middlewares in express
 export const app = express(); // application object
 
@@ -65,10 +60,7 @@ i18next
     },
   }); // internationalization
 app.use(middleware.handle(i18next));
-app.use("/api/v1", healthRoutes);
-app.use("/api/v1", AuthRoutes);
-app.use("/api/v1/admin", auth, authorize(true, "ADMIN"), AdminRoutes);
-app.use("/api/v1", UserRoutes);
+app.use(routes);
 
 // error handling
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
