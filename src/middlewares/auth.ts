@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { errorCode } from "../config/errorCode";
 import { getUserById, updateUser } from "../services/authService";
 import { checkUserIfNotExist } from "../util/auth";
+import { createError } from "../util/error";
 
 interface CustomRequest extends Request {
   userId?: number;
@@ -13,10 +14,7 @@ const auth = (req: CustomRequest, res: Response, next: NextFunction) => {
   const refreshToken = req.cookies ? req.cookies.refreshToken : null;
 
   if (!refreshToken) {
-    const error: any = new Error("You are not an authenticated user");
-    error.status = 401;
-    error.code = errorCode.unauthenticated;
-    return next(error);
+    return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
   }
   const generateNewToken = async () => {
     let decoded;
@@ -26,32 +24,21 @@ const auth = (req: CustomRequest, res: Response, next: NextFunction) => {
         phone: string;
       };
     } catch (err) {
-      const error: any = new Error("You are not an a authenticated user");
-      error.status = 401;
-      error.code = errorCode.unauthenticated;
-      return next(error);
+      return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
     }
     if (isNaN(decoded.id)) {
-      const error: any = new Error("You are not an b authenticated user");
-      error.status = 401;
-      error.code = errorCode.unauthenticated;
-      return next(error);
+      return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
     }
     const user: any = await getUserById(decoded.id);
     checkUserIfNotExist(user);
 
     if (user.phone !== decoded.phone) {
-      const error: any = new Error("You are not an c authenticated user");
-      error.status = 401;
-      error.code = errorCode.unauthenticated;
-      return next(error);
+      return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
     }
 
     if (user.randToken !== refreshToken) {
-      const error: any = new Error("You are not an d authenticated user");
-      error.status = 401;
-      error.code = errorCode.unauthenticated;
-      return next(error);
+      return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
+
     }
 
     // jwt token
@@ -102,10 +89,6 @@ const auth = (req: CustomRequest, res: Response, next: NextFunction) => {
   };
   if (!accessToken) {
     generateNewToken();
-    // const error: any = new Error("Access Token has expired");
-    // error.status = 401;
-    // error.code = errorCode.accessTokenExpired;
-    // return next(error);
   } else {
     // verify jwt access token
     let decoded;
@@ -114,24 +97,15 @@ const auth = (req: CustomRequest, res: Response, next: NextFunction) => {
         id: number;
       };
       if (isNaN(decoded.id)) {
-        const error: any = new Error("You are not an e authenticated user");
-        error.status = 401;
-        error.code = errorCode.unauthenticated;
-        return next(error);
+        return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
       }
       req.userId = decoded.id;
       next();
     } catch (error: any) {
       if (error.name === "TokenExpiredError") {
         generateNewToken();
-        // error.message = "Access Token has expired.";
-        // error.status = 401;
-        // error.code = errorCode.accessTokenExpired;
       } else {
-        error.message = error.message;
-        error.status = 400;
-        error.code = errorCode.attack;
-        return next(error);
+        return next(createError(error.message,400,errorCode.attack));       
       }
     }
   }

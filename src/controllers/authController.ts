@@ -20,6 +20,7 @@ import { compare, genSalt, hash } from "bcrypt";
 import moment from "moment";
 import jwt from "jsonwebtoken";
 import { errorCode } from "../config/errorCode";
+import { createError } from "../util/error";
 
 export const register = [
   body("phone", "Invalid phone number")
@@ -31,10 +32,7 @@ export const register = [
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      const error: any = new Error(errors[0].msg);
-      error.status = 400;
-      error.code = errorCode.invalid;
-      return next(error);
+      return next(createError(errors[0].msg,400,errorCode.invalid));
     }
 
     let phone = req.body.phone;
@@ -84,12 +82,7 @@ export const register = [
         result = await updateOTP(otpRow.id, otpData);
       } else {
         if (otpRow.count === 3) {
-          const error: any = new Error(
-            "OTP is allowed to request 3 times per day."
-          );
-          error.status = 405;
-          error.code = errorCode.overLimit;
-          return next(error);
+          return next(createError( "OTP is allowed to request 3 times per day.",405,errorCode.overLimit));
         }
 
         const otpData = {
@@ -125,10 +118,7 @@ export const verifyOtp = [
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      const error: any = new Error(errors[0].msg);
-      error.status = 400;
-      error.code = errorCode.invalid;
-      return next(error);
+      return next(createError(errors[0].msg,400,errorCode.invalid));
     }
 
     const { phone, otp, token } = req.body;
@@ -148,18 +138,13 @@ export const verifyOtp = [
       await updateOTP(otpRow.id, {
         count: 5,
       });
-      const error: any = new Error("Invalid token");
-      error.status = 400;
-      error.code = errorCode.invalid;
-      return next(error);
+      return next(createError("Invalid token",400,errorCode.invalid));
+
     }
 
     const isOtpExpire = moment().diff(otpRow.updatedAt, "minutes") > 5; // if expires is more than 5 minute
     if (isOtpExpire) {
-      const error: any = new Error("OTP is expired");
-      error.status = 400;
-      error.code = errorCode.otpExpired;
-      return next(error);
+      return next(createError("OTP is expired",400,errorCode.invalid));
     }
 
     const isMatchOpt = await compare(otp, otpRow.otp);
@@ -175,10 +160,8 @@ export const verifyOtp = [
           },
         });
       }
-      const error: any = new Error("OTP is wrong");
-      error.status = 400;
-      error.code = errorCode.invalid;
-      return next(error);
+      return next(createError("OTP is wrong",400,errorCode.invalid));
+
     }
 
     const verifyToken = generateToken();
@@ -209,10 +192,7 @@ export const confirmPassword = [
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      const error: any = new Error(errors[0].msg);
-      error.status = 400;
-      error.code = "VALIDATION_ERROR";
-      return next(error);
+      return next(createError(errors[0].msg,400,errorCode.invalid));
     }
 
     const { phone, token, password } = req.body;
@@ -224,28 +204,20 @@ export const confirmPassword = [
     checkOtpRow(otpRow);
 
     if (otpRow.error === 5) {
-      const error: any = new Error("This attack may be an attack.");
-      error.status = 400;
-      error.code = "Error_BadRequest";
-      return next(error);
+      return next(createError("This attack may be an attack.",400,errorCode.attack));
+
     }
 
     if (otpRow.verifyToken !== token) {
       await updateOTP(otpRow.id, {
         error: 5,
       });
-      const error: any = new Error("Invalid token.");
-      error.status = 400;
-      error.code = "Error_Invalid";
-      return next(error);
+      return next(createError("Invalid token.",400,errorCode.invalid));
     }
 
     const isOtpExpire = moment().diff(otpRow.updatedAt, "minutes") > 10;
     if (isOtpExpire) {
-      const error: any = new Error("Request expired.");
-      error.status = 400;
-      error.code = "Error_Expired";
-      return next(error);
+      return next(createError("Request expired.",400,errorCode.requestExpired));
     }
 
     const salt = await genSalt(10);
@@ -317,10 +289,7 @@ export const login = [
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      const error: any = new Error(errors[0].msg);
-      error.status = 400;
-      error.code = errorCode.invalid;
-      return next(error);
+      return next(createError(errors[0].msg,400,errorCode.invalid));
     }
 
     let phone = req.body.phone;
@@ -334,12 +303,7 @@ export const login = [
 
     // if user status is freeze
     if (user.status === "FREEZE") {
-      const error: any = new Error(
-        "Your accound is temporary lock. Please contact us."
-      );
-      error.status = 400;
-      error.code = errorCode.accountFreeze;
-      return next(error);
+      return next(createError("Your accound is temporary lock. Please contact us.",400,errorCode.accountFreeze));
     }
     const isMatchPassword = await compare(password, user.password);
 
@@ -368,10 +332,7 @@ export const login = [
         await updateUser(user.id, userData);
       }
 
-      const error: any = new Error("Invalid Credentials.");
-      error.status = 400;
-      error.code = errorCode.invalid;
-      return next(error);
+      return next(createError("Invalid Credentials.",400,errorCode.invalid));
     }
 
     // jwt token
@@ -432,10 +393,7 @@ export const logout = async (
   const refreshToken = req.cookies ? req.cookies.refreshToken : null;
 
   if (!refreshToken) {
-    const error: any = new Error("You are not an authenticated user");
-    error.status = 401;
-    error.code = errorCode.unauthenticated;
-    return next(error);
+    return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
   }
 
   // verify jwt access token
@@ -443,27 +401,18 @@ export const logout = async (
   try {
     decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!);
   } catch (err: any) {
-    const error: any = new Error("You are not an authenticated user");
-    error.status = 401;
-    error.code = errorCode.unauthenticated;
-    return next(error);
+    return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
   }
 
   if (!isNaN(decoded.id)) {
-    const error: any = new Error("You are not an authenticated user");
-    error.status = 401;
-    error.code = errorCode.unauthenticated;
-    return next(error);
+    return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
   }
 
   const user: any = await getUserById(decoded.id);
   checkUserIfNotExist(user);
 
   if (user.phone !== decoded.phone) {
-    const error: any = new Error("You are not an authenticated user");
-    error.status = 401;
-    error.code = errorCode.unauthenticated;
-    return next(error);
+    return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
   }
 
   await updateUser(user.id, {
