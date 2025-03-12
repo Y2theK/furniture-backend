@@ -53,7 +53,7 @@ const auth = (req: CustomRequest, res: Response, next: NextFunction) => {
       accessPayload,
       process.env.ACCESS_TOKEN_SECRET!,
       {
-        expiresIn: 60 * 2, // 15 min
+        expiresIn: 60 * 15, // 15 min
       }
     );
     const newRefreshToken = jwt.sign(
@@ -75,7 +75,7 @@ const auth = (req: CustomRequest, res: Response, next: NextFunction) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-        maxAge: 2 * 60 * 1000, // 15 min
+        maxAge: 15 * 60 * 1000, // 15 min
       })
       .cookie("refreshToken", newRefreshToken, {
         httpOnly: true,

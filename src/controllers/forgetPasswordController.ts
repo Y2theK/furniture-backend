@@ -224,7 +224,7 @@ export const resetPassword = [
       accessPayload,
       process.env.ACCESS_TOKEN_SECRET!,
       {
-        expiresIn: 60 * 2,
+        expiresIn: 60 * 15,
       }
     );
     const refreshToken = jwt.sign(
@@ -246,7 +246,7 @@ export const resetPassword = [
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-        maxAge: 2 * 60 * 1000,
+        maxAge: 15 * 60 * 1000,
       })
       .cookie("refreshToken", refreshToken, {
         httpOnly: true,
