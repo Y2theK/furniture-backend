@@ -5,13 +5,20 @@ import AuthRoutes from "./auth";
 import AdminRoutes from "./admin/admin";
 import UserRoutes from "./user/user";
 import { authorize } from "../../middlewares/authorize";
+import { maintainance } from "../../middlewares/maintainance";
 
 const router = Router();
 
 // when you use /api/v1 prefix for 2 routes like in health and auth routes, the middleware will run twice
-router.use("/api/v1", healthRoutes);
-router.use("/api/v1", AuthRoutes);
-router.use("/api/v1/user", UserRoutes);
-router.use("/api/v1/admin", auth, authorize(true, "ADMIN"), AdminRoutes);
+router.use("/api/v1", maintainance, healthRoutes);
+router.use("/api/v1", maintainance, AuthRoutes);
+router.use("/api/v1/user", maintainance, UserRoutes);
+router.use(
+  "/api/v1/admin",
+  maintainance,
+  auth,
+  authorize(true, "ADMIN"),
+  AdminRoutes
+);
 
 export default router;
