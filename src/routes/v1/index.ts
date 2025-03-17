@@ -6,7 +6,6 @@ import AdminRoutes from "./admin/admin";
 import UserRoutes from "./user/user";
 import { authorize } from "../../middlewares/authorize";
 import { maintainance } from "../../middlewares/maintainance";
-
 const router = Router();
 
 // when you use /api/v1 prefix for 2 routes like in health and auth routes, the middleware will run twice

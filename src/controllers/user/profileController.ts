@@ -3,6 +3,9 @@ import jwt from "jsonwebtoken";
 import { body, query, validationResult } from "express-validator";
 import { errorCode } from "../../config/errorCode";
 import { createError } from "../../util/error";
+import { getUserById, updateUser } from "../../services/authService";
+import { checkUserIfNotExist } from "../../util/auth";
+import { checkFileIfNotExist } from "../../util/check";
 
 interface CustomRequest extends Request {
   userId?: number;
@@ -17,7 +20,7 @@ export const changeLanguage = [
   (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      return next(createError(errors[0].msg,400,errorCode.invalid));
+      return next(createError(errors[0].msg, 400, errorCode.invalid));
     }
 
     const { lng } = req.query;
@@ -28,3 +31,21 @@ export const changeLanguage = [
     });
   },
 ];
+
+export const uploadProfile = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const userId = req.userId;
+  const image = req.file;
+  const user = await getUserById(userId!);
+  checkUserIfNotExist(user);
+  checkFileIfNotExist(image);
+
+  await updateUser(userId!, { image: image!.path });
+
+  res.status(200).json({
+    message: "Profile Picture Uploaded",
+  });
+};
