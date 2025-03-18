@@ -11,5 +11,11 @@ const router = Router();
 
 router.post("/change-language", changeLanguage);
 router.patch("/profile/upload", auth, upload.single("avatar"), uploadProfile);
+router.patch(
+  "/profile/upload/multiple",
+  auth,
+  upload.array("avatar"),
+  uploadProfile
+);
 
 export default router;

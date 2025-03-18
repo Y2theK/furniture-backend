@@ -11,7 +11,7 @@ import i18next from "i18next";
 import Backend from "i18next-fs-backend";
 import middleware from "i18next-http-middleware";
 import path from "path";
-import routes from './routes/v1/index';
+import routes from "./routes/v1/index";
 // everythings is middlewares in express
 export const app = express(); // application object
 
@@ -39,6 +39,9 @@ app.use(compression()); // compress/zip response payload
 app.use(limiter);
 app.use(cors(corsOptions));
 app.use(cookieParser());
+
+app.use(express.static("upload/images")); // serve static files // public access
+
 // localization middleware
 i18next
   .use(Backend)

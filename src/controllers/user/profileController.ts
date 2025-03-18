@@ -34,6 +34,17 @@ export const changeLanguage = [
   },
 ];
 
+export const uploadProfileMultiple = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  console.log("req.files -------", req.files);
+
+  res.status(200).json({
+    message: "Multiple Profile pictures uploaded successfully.",
+  });
+};
 export const uploadProfile = async (
   req: CustomRequest,
   res: Response,
