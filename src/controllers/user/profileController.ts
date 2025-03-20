@@ -9,6 +9,7 @@ import { checkFileIfNotExist } from "../../util/check";
 import { unlink } from "fs";
 import path from "path";
 import sharp from "sharp";
+import imageQueue from "../../jobs/queues/imageQueue";
 
 interface CustomRequest extends Request {
   userId?: number;
@@ -46,38 +47,61 @@ export const uploadProfileOptimize = async (
   checkUserIfNotExist(user);
   checkFileIfNotExist(image);
 
-  const fileName = Date.now() + "-" + Math.round(Math.random() * 1e9) + ".webp";
+  const fileName = image?.filename.split(".")[0] + ".webp";
 
-  try {
-    const optimizeImagePath = path.join(
-      __dirname,
-      "../../../",
-      "upload/images/",
-      fileName
-    );
+  // add a job to the queue
+  const job = await imageQueue.add("optimizeImage", {
+    filePath: image?.path,
+    fileName: fileName,
+    width: 200,
+    height: 200,
+    quality: 80,
+  });
 
-    await sharp(image?.buffer)
-      .resize(200, 200)
-      .webp({ quality: 80 })
-      .toFile(optimizeImagePath);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: "Image Optimization Failed",
-    });
-    return;
-  }
+  // try {
+  //   const optimizeImagePath = path.join(
+  //     __dirname,
+  //     "../../../",
+  //     "upload/images/",
+  //     fileName
+  //   );
+
+  //   await sharp(image?.buffer)
+  //     .resize(200, 200)
+  //     .webp({ quality: 80 })
+  //     .toFile(optimizeImagePath);
+  // } catch (error) {
+  //   console.log(error);
+  //   res.status(500).json({
+  //     message: "Image Optimization Failed",
+  //   });
+  //   return;
+  // }
 
   // delete old image
   if (user.image) {
-    // we have to use path.join to get the correct path
-    const filePath = path.join(
+    //delete original image
+    const originalFilePath = path.join(
       __dirname,
       "../../../",
       "upload/images/",
-      user.image // in window system we get upload\\image.jpg so we need to replace it to upload/image.jpg
+      user.image
     );
-    await unlink(filePath, (err) => {
+    await unlink(originalFilePath, (err) => {
+      if (err) {
+        console.log(err);
+      }
+    });
+
+    // delete optimized image
+    const optimizeFilePath = path.join(
+      __dirname,
+      "../../../",
+      "upload/optimize/",
+      fileName
+    );
+
+    await unlink(optimizeFilePath, (err) => {
       if (err) {
         console.log(err);
       }
@@ -85,10 +109,12 @@ export const uploadProfileOptimize = async (
   }
 
   // update new image
-  await updateUser(userId!, { image: fileName });
+  await updateUser(userId!, { image: image?.filename });
 
   res.status(200).json({
     message: "Profile Picture Uploaded",
+    image: fileName,
+    jobId: job.id,
   });
 };
 
