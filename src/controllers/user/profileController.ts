@@ -50,13 +50,23 @@ export const uploadProfileOptimize = async (
   const fileName = image?.filename.split(".")[0] + ".webp";
 
   // add a job to the queue
-  const job = await imageQueue.add("optimizeImage", {
-    filePath: image?.path,
-    fileName: fileName,
-    width: 200,
-    height: 200,
-    quality: 80,
-  });
+  const job = await imageQueue.add(
+    "optimizeImage",
+    {
+      filePath: image?.path,
+      fileName: fileName,
+      width: 200,
+      height: 200,
+      quality: 80,
+    },
+    {
+      attempts: 3, // retry 3 times
+      backoff: {
+        type: "exponential", // wait time between retries
+        delay: 1000,
+      },
+    }
+  );
 
   // try {
   //   const optimizeImagePath = path.join(

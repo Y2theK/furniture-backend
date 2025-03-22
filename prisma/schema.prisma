@@ -51,7 +51,7 @@ model Post {
   author     User      @relation(fields: [authorId], references: [id])
   category   Category  @relation(fields: [categoryId], references: [id])
   type       Type      @relation(fields: [typeId], references: [id])
-  // tags       Tag[]
+  tags       PostTag[]
 }
 
 model Product {
@@ -71,7 +71,7 @@ model Product {
   type        Type               @relation(fields: [typeId], references: [id])
   orders      ProductsOnOrders[]
   images      Image[]
-  // tags        Tag[]
+  tags        ProductTag[]
 }
 
 model ProductsOnOrders {
@@ -84,31 +84,31 @@ model ProductsOnOrders {
   product   Product @relation(fields: [productId], references: [id])
 }
 
-// model PostTag {
-//   id    Int    @id @default(autoincrement())
-//   name  String @unique @db.VarChar(52)
-//   posts Post[]
-// }
+model PostTag {
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(52)
+  posts Post[]
+}
 
-// model ProductTag {
-//   id       Int       @id @default(autoincrement())
-//   name     String    @unique @db.VarChar(52)
-//   products Product[]
-// }
+model ProductTag {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique @db.VarChar(52)
+  products Product[]
+}
 
 model Tag {
   id   Int        @id @default(autoincrement())
   name String     @db.VarChar(52)
-  tags Taggable[]
+  // tags Taggable[]
 }
 
-model Taggable {
-  id     Int    @id @default(autoincrement())
-  tagId  Int
-  type   String @db.VarChar(7)
-  typeId Int
-  tag    Tag    @relation(fields: [tagId], references: [id])
-}
+// model Taggable {
+//   id     Int    @id @default(autoincrement())
+//   tagId  Int
+//   type   String @db.VarChar(7)
+//   typeId Int
+//   tag    Tag    @relation(fields: [tagId], references: [id])
+// }
 
 model Type {
   id       Int       @id @default(autoincrement())
