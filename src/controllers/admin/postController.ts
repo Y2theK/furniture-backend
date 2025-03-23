@@ -6,7 +6,12 @@ import { getUserById } from "../../services/authService";
 import { checkUserIfNotExist } from "../../util/auth";
 import { checkFileIfNotExist } from "../../util/check";
 import imageQueue from "../../jobs/queues/imageQueue";
-import { createOnePost, PostArgs } from "../../services/postService";
+import {
+  createOnePost,
+  getPostById,
+  PostArgs,
+  updateOnePost,
+} from "../../services/postService";
 import sanitizeHtml from "sanitize-html";
 import { unlink } from "fs";
 import path from "path";
@@ -131,9 +136,15 @@ export const createPost = [
 ];
 
 export const updatePost = [
+  body("postId", "Post id is required").trim().isInt({ min: 1 }),
   body("title", "Title is required").trim().notEmpty().escape(),
   body("content", "Content is required").trim().notEmpty().escape(),
-  body("body", "Body is required").trim().notEmpty().escape(),
+  body("body", "Body is required")
+    .trim()
+    .notEmpty()
+    .customSanitizer((value) => {
+      return sanitizeHtml(value);
+    }),
   body("category", "Category is required").trim().notEmpty().escape(),
   body("type", "Type is required").trim().notEmpty().escape(),
   body("tags", "Tags is invalid")
@@ -150,49 +161,71 @@ export const updatePost = [
       return next(createError(errors[0].msg, 400, errorCode.invalid));
     }
 
-    const { title, content, body, category, type, tags } = req.body;
+    const { postId, title, content, body, category, type, tags } = req.body;
     const userId = req.userId;
     const image = req.file;
     const user: any = await getUserById(userId!);
     checkUserIfNotExist(user);
-    checkFileIfNotExist(image);
+    if (!user) {
+      req.file && (await removeFiles(image!.filename, null));
+      return next(createError("User not exists.", 409, errorCode.invalid));
+    }
+    const post: any = await getPostById(parseInt(postId));
+    if (!post) {
+      req.file && (await removeFiles(image!.filename, null));
+      return next(createError("Post Id not exists.", 400, errorCode.invalid));
+    }
 
-    const fileName = image?.filename.split(".")[0] + ".webp";
+    if (post.authorId !== userId) {
+      req.file && (await removeFiles(image!.filename, null));
+      return next(
+        createError("You cannot delete this post.", 403, errorCode.unauthorised)
+      );
+    }
 
-    // add a job to the queue
-    await imageQueue.add(
-      "optimizeImage",
-      {
-        filePath: image?.path,
-        fileName: fileName,
-        width: 835,
-        height: 577,
-        quality: 80,
-      },
-      {
-        attempts: 3, // retry 3 times
-        backoff: {
-          type: "exponential", // wait time between retries
-          delay: 1000,
-        },
-      }
-    );
-
-    const postData: PostArgs = {
+    let postData: any = {
       title,
       content,
       body,
-      image: req.file!.filename,
       category,
       type,
       tags,
-      authorId: userId!,
     };
 
-    const post = await createOnePost(postData);
+    if (req.file) {
+      postData.image = req.file.filename;
+
+      const fileName = image?.filename.split(".")[0] + ".webp";
+
+      // add a job to the queue
+      await imageQueue.add(
+        "optimizeImage",
+        {
+          filePath: image?.path,
+          fileName: fileName,
+          width: 835,
+          height: 577,
+          quality: 80,
+        },
+        {
+          attempts: 3, // retry 3 times
+          backoff: {
+            type: "exponential", // wait time between retries
+            delay: 1000,
+          },
+        }
+      );
+
+      // delete images
+      const optimizeFile = post.image.split(".")[0] + ".webp";
+      await removeFiles(post.image, optimizeFile);
+    }
+
+    const postUpdated = await updateOnePost(post.id, postData);
 
     res.status(201).json({
-      message: "Post created successfully",
+      message: "Post updated successfully",
+      post: postUpdated,
     });
   },
 ];
