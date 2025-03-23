@@ -7,14 +7,19 @@ import { checkUserIfNotExist } from "../../util/auth";
 import { checkFileIfNotExist } from "../../util/check";
 import imageQueue from "../../jobs/queues/imageQueue";
 import { createOnePost, PostArgs } from "../../services/postService";
-
+import sanitizeHtml from "sanitize-html";
 interface CustomRequest extends Request {
   userId?: number;
 }
 export const createPost = [
   body("title", "Title is required").trim().notEmpty().escape(),
   body("content", "Content is required").trim().notEmpty().escape(),
-  body("body", "Body is required").trim().notEmpty().escape(),
+  body("body", "Body is required")
+    .trim()
+    .notEmpty()
+    .customSanitizer((value) => {
+      return sanitizeHtml(value);
+    }),
   body("category", "Category is required").trim().notEmpty().escape(),
   body("type", "Type is required").trim().notEmpty().escape(),
   body("tags", "Tags is invalid")
