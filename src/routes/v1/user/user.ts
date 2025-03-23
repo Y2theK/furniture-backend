@@ -27,4 +27,7 @@ router.patch(
   uploadProfileOptimize
 );
 
+// router.get("/posts", auth, getPostsByPagination);
+// router.get("/posts/:id", auth, getPost);
+
 export default router;
