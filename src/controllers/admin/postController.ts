@@ -8,9 +8,49 @@ import { checkFileIfNotExist } from "../../util/check";
 import imageQueue from "../../jobs/queues/imageQueue";
 import { createOnePost, PostArgs } from "../../services/postService";
 import sanitizeHtml from "sanitize-html";
+import { unlink } from "fs";
+import path from "path";
 interface CustomRequest extends Request {
   userId?: number;
 }
+
+const removeFiles = async (
+  originalfile: string,
+  optimizeFile: string | null
+) => {
+  try {
+    //delete original image
+    const originalFilePath = path.join(
+      __dirname,
+      "../../../",
+      "upload/images/",
+      originalfile
+    );
+    await unlink(originalFilePath, (err) => {
+      if (err) {
+        console.log(err);
+      }
+    });
+
+    if (optimizeFile) {
+      // delete optimized image
+      const optimizeFilePath = path.join(
+        __dirname,
+        "../../../",
+        "upload/optimize/",
+        optimizeFile
+      );
+
+      await unlink(optimizeFilePath, (err) => {
+        if (err) {
+          console.log(err);
+        }
+      });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
 export const createPost = [
   body("title", "Title is required").trim().notEmpty().escape(),
   body("content", "Content is required").trim().notEmpty().escape(),
@@ -33,15 +73,21 @@ export const createPost = [
   async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
+      req.file && (await removeFiles(req.file!.filename, null));
       return next(createError(errors[0].msg, 400, errorCode.invalid));
     }
 
     const { title, content, body, category, type, tags } = req.body;
     const userId = req.userId;
     const image = req.file;
+    checkFileIfNotExist(image);
     const user: any = await getUserById(userId!);
     checkUserIfNotExist(user);
-    checkFileIfNotExist(image);
+
+    if (!user) {
+      req.file && (await removeFiles(image!.filename, null));
+      return next(createError("User not exists.", 409, errorCode.invalid));
+    }
 
     const fileName = image?.filename.split(".")[0] + ".webp";
 

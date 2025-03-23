@@ -90,32 +90,36 @@ export const uploadProfileOptimize = async (
 
   // delete old image
   if (user.image) {
-    //delete original image
-    const originalFilePath = path.join(
-      __dirname,
-      "../../../",
-      "upload/images/",
-      user.image
-    );
-    await unlink(originalFilePath, (err) => {
-      if (err) {
-        console.log(err);
-      }
-    });
+    try {
+      //delete original image
+      const originalFilePath = path.join(
+        __dirname,
+        "../../../",
+        "upload/images/",
+        user.image
+      );
+      await unlink(originalFilePath, (err) => {
+        if (err) {
+          console.log(err);
+        }
+      });
 
-    // delete optimized image
-    const optimizeFilePath = path.join(
-      __dirname,
-      "../../../",
-      "upload/optimize/",
-      fileName
-    );
+      // delete optimized image
+      const optimizeFilePath = path.join(
+        __dirname,
+        "../../../",
+        "upload/optimize/",
+        fileName
+      );
 
-    await unlink(optimizeFilePath, (err) => {
-      if (err) {
-        console.log(err);
-      }
-    });
+      await unlink(optimizeFilePath, (err) => {
+        if (err) {
+          console.log(err);
+        }
+      });
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   // update new image
