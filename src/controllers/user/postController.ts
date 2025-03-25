@@ -1,5 +1,5 @@
 import { param } from "express-validator";
-import { getPostById } from "../../services/postService";
+import { getPostById, getPostWithRelation } from "../../services/postService";
 import { Request, Response } from "express";
 import { getUserById } from "../../services/authService";
 import { checkModelIfNotExist, checkUserIfNotExist } from "../../util/auth";
@@ -16,7 +16,7 @@ export const getPost = [
 
     const { id: postId } = req.params;
 
-    const post = await getPostById(+postId);
+    const post = await getPostWithRelation(+postId); //+postId is the same as parseInt(postId)
     checkModelIfNotExist(post);
 
     res.status(200).json({
