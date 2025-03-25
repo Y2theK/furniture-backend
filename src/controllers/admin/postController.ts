@@ -3,11 +3,12 @@ import { body, validationResult } from "express-validator";
 import { errorCode } from "../../config/errorCode";
 import { createError } from "../../util/error";
 import { getUserById } from "../../services/authService";
-import { checkUserIfNotExist } from "../../util/auth";
+import { checkModelIfNotExist, checkUserIfNotExist } from "../../util/auth";
 import { checkFileIfNotExist } from "../../util/check";
 import imageQueue from "../../jobs/queues/imageQueue";
 import {
   createOnePost,
+  deleteOnePost,
   getPostById,
   PostArgs,
   updateOnePost,
@@ -229,10 +230,44 @@ export const updatePost = [
     });
   },
 ];
+
 export const deletePost = [
+  body("postId", "Post id is required").trim().isInt({ min: 1 }),
   async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      return next(createError(errors[0].msg, 400, errorCode.invalid));
+    }
+
+    const { postId } = req.body;
+    const userId = req.userId;
+    const image = req.file;
+    const user: any = await getUserById(userId!);
+    checkUserIfNotExist(user);
+    const post: any = await getPostById(parseInt(postId));
+    checkModelIfNotExist(post);
+
+    if (post.authorId !== userId) {
+      req.file && (await removeFiles(image!.filename, null));
+      return next(
+        createError("You cannot delete this post.", 403, errorCode.unauthorised)
+      );
+    }
+
+    if (!user) {
+      req.file && (await removeFiles(image!.filename, null));
+      return next(createError("User not exists.", 409, errorCode.invalid));
+    }
+
+    const postDeleted = await deleteOnePost(parseInt(postId));
+
+    // delete images
+    const optimizeFile = post.image.split(".")[0] + ".webp";
+    await removeFiles(post.image, optimizeFile);
+
     res.status(201).json({
-      message: "Post created successfully",
+      message: "Post deleted successfully",
+      post: postDeleted,
     });
   },
 ];

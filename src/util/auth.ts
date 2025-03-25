@@ -18,6 +18,14 @@ export const checkUserIfNotExist = (user: any) => {
   }
 };
 
+export const checkModelIfNotExist = (model: any) => {
+  if (!model) {
+    const error: any = new Error("Record not exists.");
+    error.status = 409;
+    error.code = errorCode.invalid;
+    throw error;
+  }
+};
 export const checkOtpErrorIfSameDate = (
   isSameDate: boolean,
   errorCount: number
