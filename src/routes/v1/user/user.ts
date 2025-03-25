@@ -8,6 +8,11 @@ import {
 } from "../../../controllers/user/profileController";
 import auth from "../../../middlewares/auth";
 import upload, { uploadMemory } from "../../../middlewares/uploadFiles";
+import {
+  getInfinitePostsByPagination,
+  getPost,
+  getPostsByPagination,
+} from "../../../controllers/user/postController";
 
 const router = Router();
 
@@ -27,7 +32,8 @@ router.patch(
   uploadProfileOptimize
 );
 
-// router.get("/posts", auth, getPostsByPagination);
-// router.get("/posts/:id", auth, getPost);
+router.get("/posts", auth, getPostsByPagination);
+router.get("/posts/infinite", auth, getInfinitePostsByPagination);
+router.get("/posts/:id", auth, getPost);
 
 export default router;
