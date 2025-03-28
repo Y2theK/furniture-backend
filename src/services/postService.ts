@@ -165,3 +165,7 @@ export const updateOnePost = async (id: number, postData: any) => {
     data: data,
   });
 };
+
+export const getPostLists = async (options: any) => {
+  return prisma.post.findMany(options);
+};

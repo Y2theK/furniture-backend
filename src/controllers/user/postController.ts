@@ -1,5 +1,9 @@
-import { body, param } from "express-validator";
-import { getPostById, getPostWithRelation } from "../../services/postService";
+import { body, param, query } from "express-validator";
+import {
+  getPostById,
+  getPostLists,
+  getPostWithRelation,
+} from "../../services/postService";
 import { Request, Response } from "express";
 import { getUserById } from "../../services/authService";
 import { checkModelIfNotExist, checkUserIfNotExist } from "../../util/auth";
@@ -47,6 +51,57 @@ export const getPost = [
   },
 ];
 
-export const getPostsByPagination = () => {};
+export const getPostsByPagination = [
+  query("page", "Page Number must be unsigned integer")
+    .isInt({ gt: 0 })
+    .optional(),
+  query("limit", "Limit number must be unsigned integer")
+    .isInt({ gt: 4 })
+    .optional(),
+  async (req: CustomRequest, res: Response) => {
+    const page = req.query.page || 1;
+    const limit = req.query.limit || 5;
+    const user: any = await getUserById(req.userId!);
+    checkUserIfNotExist(user);
+
+    const skip = (+page - 1) * +limit; //+limit is converting string to integer
+    const options = {
+      skip,
+      take: +limit + 1,
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        image: true,
+        updatedAt: true,
+        author: {
+          select: {
+            fullname: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    };
+    const posts = await getPostLists(options);
+    const hasNextPage = posts.length > +limit;
+    let nextPage = null;
+    const prevPage = +page !== 1 ? +page - 1 : null;
+    if (hasNextPage) {
+      posts.pop();
+      nextPage = +page + 1;
+    }
+
+    res.status(200).json({
+      message: "Post fetched successfully",
+      posts,
+      currentPage: page,
+      hasNextPage,
+      prevPage,
+      nextPage,
+    });
+  },
+];
 
 export const getInfinitePostsByPagination = () => {};
