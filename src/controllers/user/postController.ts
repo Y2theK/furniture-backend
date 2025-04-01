@@ -9,6 +9,7 @@ import { getUserById } from "../../services/authService";
 import { checkModelIfNotExist, checkUserIfNotExist } from "../../util/auth";
 import { createError } from "../../util/error";
 import { errorCode } from "../../config/errorCode";
+import { getOrSetCache } from "../../util/cache";
 
 interface CustomRequest extends Request {
   userId?: number;
@@ -26,7 +27,12 @@ export const getPost = [
 
     const { id: postId } = req.params;
 
-    const post = await getPostWithRelation(+postId); //+postId is the same as parseInt(postId)
+    // const post = await getPostWithRelation(+postId); //+postId is the same as parseInt(postId)
+    const cacheKey = `posts:${JSON.stringify(+postId)}`;
+    const post = await getOrSetCache(cacheKey, async () => {
+      return await getPostWithRelation(+postId);
+    });
+
     checkModelIfNotExist(post);
 
     res.status(200).json({
@@ -73,7 +79,12 @@ export const getPostsByPagination = [
         updatedAt: "desc",
       },
     };
-    const posts = await getPostLists(options);
+    // const posts = await getPostLists(options);
+
+    const cacheKey = `posts:${JSON.stringify(req.query)}`;
+    const posts = await getOrSetCache(cacheKey, async () => {
+      return await getPostLists(options);
+    });
     const hasNextPage = posts.length > +limit;
     let nextPage = null;
     const prevPage = +page !== 1 ? +page - 1 : null;
@@ -130,7 +141,11 @@ export const getInfinitePostsByPagination = [
         id: "asc",
       },
     };
-    const posts = await getPostLists(options);
+    // const posts = await getPostLists(options);
+    const cacheKey = `posts:${JSON.stringify(req.query)}`;
+    const posts = await getOrSetCache(cacheKey, async () => {
+      return await getPostLists(options);
+    });
     const hasNextPage = posts.length > +limit;
     const newCursor = posts.length > 0 ? posts[posts.length - 1].id : null;
     if (hasNextPage) {
