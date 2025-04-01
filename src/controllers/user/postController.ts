@@ -1,12 +1,14 @@
-import { body, param, query } from "express-validator";
+import { body, param, query, validationResult } from "express-validator";
 import {
   getPostById,
   getPostLists,
   getPostWithRelation,
 } from "../../services/postService";
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { getUserById } from "../../services/authService";
 import { checkModelIfNotExist, checkUserIfNotExist } from "../../util/auth";
+import { createError } from "../../util/error";
+import { errorCode } from "../../config/errorCode";
 
 interface CustomRequest extends Request {
   userId?: number;
@@ -14,7 +16,11 @@ interface CustomRequest extends Request {
 
 export const getPost = [
   param("id", "Post id is required").trim().isInt({ min: 1 }),
-  async (req: CustomRequest, res: Response) => {
+  async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      return next(createError(errors[0].msg, 400, errorCode.invalid));
+    }
     const user: any = await getUserById(req.userId!);
     checkUserIfNotExist(user);
 
@@ -22,27 +28,6 @@ export const getPost = [
 
     const post = await getPostWithRelation(+postId); //+postId is the same as parseInt(postId)
     checkModelIfNotExist(post);
-
-    // const modifiedPost = {
-    //   id: post?.id,
-    //   title: post?.title,
-    //   content: post?.content,
-    //   body: post?.body,
-    //   image: "/optimize/" + post?.image.split(".")[0] + ".webp",
-    //   fullName:
-    //     post?.author.firstName ?? "" + " " + post?.author.lastName ?? "",
-    //   category: post?.category.name,
-    //   type: post?.type.name,
-    //   tags:
-    //     post?.tags && post?.tags.length > 0
-    //       ? post?.tags.map((tag) => tag.name)
-    //       : null,
-    //   updatedAt: post?.updatedAt.toLocaleDateString("en-US", {
-    //     year: "numeric",
-    //     month: "long",
-    //     day: "numeric",
-    //   }), // format date - "March 23, 2025"
-    // };
 
     res.status(200).json({
       message: "Post fetched successfully",
@@ -58,7 +43,11 @@ export const getPostsByPagination = [
   query("limit", "Limit number must be unsigned integer")
     .isInt({ gt: 4 })
     .optional(),
-  async (req: CustomRequest, res: Response) => {
+  async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      return next(createError(errors[0].msg, 400, errorCode.invalid));
+    }
     const page = req.query.page || 1;
     const limit = req.query.limit || 5;
     const user: any = await getUserById(req.userId!);
@@ -104,4 +93,56 @@ export const getPostsByPagination = [
   },
 ];
 
-export const getInfinitePostsByPagination = () => {};
+export const getInfinitePostsByPagination = [
+  query("cursor", "Cursor Number must be unsigned integer")
+    .isInt({ gt: 0 })
+    .optional(),
+  query("limit", "Limit number must be unsigned integer")
+    .isInt({ gt: 4 })
+    .optional(),
+  async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      return next(createError(errors[0].msg, 400, errorCode.invalid));
+    }
+    const lastCursor = req.query.cursor;
+    const limit = req.query.limit || 5;
+    const user: any = await getUserById(req.userId!);
+    checkUserIfNotExist(user);
+
+    const options = {
+      skip: lastCursor ? 1 : 0,
+      take: +limit + 1,
+      cursor: lastCursor ? { id: +lastCursor } : undefined,
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        image: true,
+        updatedAt: true,
+        author: {
+          select: {
+            fullname: true,
+          },
+        },
+      },
+      orderBy: {
+        id: "asc",
+      },
+    };
+    const posts = await getPostLists(options);
+    const hasNextPage = posts.length > +limit;
+    const newCursor = posts.length > 0 ? posts[posts.length - 1].id : null;
+    if (hasNextPage) {
+      posts.pop();
+    }
+
+    res.status(200).json({
+      message: "Post fetched successfully",
+      posts,
+      currentCursor: lastCursor,
+      hasNextPage,
+      newCursor,
+    });
+  },
+];
