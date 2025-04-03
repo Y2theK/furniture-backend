@@ -16,6 +16,7 @@ import {
 import sanitizeHtml from "sanitize-html";
 import { unlink } from "fs";
 import path from "path";
+import cacheQueue from "../../jobs/queues/cacheQueue";
 interface CustomRequest extends Request {
   userId?: number;
 }
@@ -128,6 +129,16 @@ export const createPost = [
     };
 
     const post = await createOnePost(postData);
+    await cacheQueue.add(
+      "invalidate-post-cache",
+      {
+        pattern: "posts:*",
+      },
+      {
+        jobId: `invalidate-${Date.now()}`,
+        priority: 1,
+      }
+    );
 
     res.status(201).json({
       message: "Post created successfully",
@@ -223,7 +234,16 @@ export const updatePost = [
     }
 
     const postUpdated = await updateOnePost(post.id, postData);
-
+    await cacheQueue.add(
+      "invalidate-post-cache",
+      {
+        pattern: "posts:*",
+      },
+      {
+        jobId: `invalidate-${Date.now()}`,
+        priority: 1,
+      }
+    );
     res.status(201).json({
       message: "Post updated successfully",
       post: postUpdated,
@@ -264,6 +284,17 @@ export const deletePost = [
     // delete images
     const optimizeFile = post.image.split(".")[0] + ".webp";
     await removeFiles(post.image, optimizeFile);
+
+    await cacheQueue.add(
+      "invalidate-post-cache",
+      {
+        pattern: "posts:*",
+      },
+      {
+        jobId: `invalidate-${Date.now()}`,
+        priority: 1,
+      }
+    );
 
     res.status(201).json({
       message: "Post deleted successfully",
