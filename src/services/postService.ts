@@ -150,6 +150,7 @@ export const updateOnePost = async (id: number, postData: any) => {
   }
   if (postData.tags && postData.tags.length > 0) {
     data.tags = {
+      set: [],
       connectOrCreate: postData.tags.map((tag: string) => ({
         where: {
           name: tag,

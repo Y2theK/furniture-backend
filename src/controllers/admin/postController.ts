@@ -88,13 +88,13 @@ export const createPost = [
     const userId = req.userId;
     const image = req.file;
     checkFileIfNotExist(image);
-    const user: any = await getUserById(userId!);
-    checkUserIfNotExist(user);
+    // const user: any = await getUserById(userId!);
+    // checkUserIfNotExist(user);
 
-    if (!user) {
-      req.file && (await removeFiles(image!.filename, null));
-      return next(createError("User not exists.", 409, errorCode.invalid));
-    }
+    // if (!user) {
+    //   req.file && (await removeFiles(image!.filename, null));
+    //   return next(createError("User not exists.", 409, errorCode.invalid));
+    // }
 
     const fileName = image?.filename.split(".")[0] + ".webp";
 
@@ -176,12 +176,12 @@ export const updatePost = [
     const { postId, title, content, body, category, type, tags } = req.body;
     const userId = req.userId;
     const image = req.file;
-    const user: any = await getUserById(userId!);
-    checkUserIfNotExist(user);
-    if (!user) {
-      req.file && (await removeFiles(image!.filename, null));
-      return next(createError("User not exists.", 409, errorCode.invalid));
-    }
+    // const user: any = await getUserById(userId!);
+    // checkUserIfNotExist(user);
+    // if (!user) {
+    //   req.file && (await removeFiles(image!.filename, null));
+    //   return next(createError("User not exists.", 409, errorCode.invalid));
+    // }
     const post: any = await getPostById(parseInt(postId));
     if (!post) {
       req.file && (await removeFiles(image!.filename, null));
@@ -262,8 +262,8 @@ export const deletePost = [
     const { postId } = req.body;
     const userId = req.userId;
     const image = req.file;
-    const user: any = await getUserById(userId!);
-    checkUserIfNotExist(user);
+    // const user: any = await getUserById(userId!);
+    // checkUserIfNotExist(user);
     const post: any = await getPostById(parseInt(postId));
     checkModelIfNotExist(post);
 
@@ -274,10 +274,10 @@ export const deletePost = [
       );
     }
 
-    if (!user) {
-      req.file && (await removeFiles(image!.filename, null));
-      return next(createError("User not exists.", 409, errorCode.invalid));
-    }
+    // if (!user) {
+    //   req.file && (await removeFiles(image!.filename, null));
+    //   return next(createError("User not exists.", 409, errorCode.invalid));
+    // }
 
     const postDeleted = await deleteOnePost(parseInt(postId));
 
