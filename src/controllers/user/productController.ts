@@ -10,6 +10,7 @@ import { checkModelIfNotExist, checkUserIfNotExist } from "../../util/auth";
 import { createError } from "../../util/error";
 import { errorCode } from "../../config/errorCode";
 import { getOrSetCache } from "../../util/cache";
+import path from "path";
 
 interface CustomRequest extends Request {
   userId?: number;
@@ -56,11 +57,38 @@ export const getProductsByPagination = [
     }
     const page = req.query.page || 1;
     const limit = req.query.limit || 5;
+    const category = req.query.category;
+    const type = req.query.type;
+
+    let categories: number[] = [];
+    let types: number[] = [];
+    if (category) {
+      categories = category
+        .toString()
+        .split(",")
+        .map((c) => Number(c))
+        .filter((c) => c > 0);
+    }
+    if (type) {
+      types = type
+        .toString()
+        .split(",")
+        .map((t) => Number(t))
+        .filter((t) => t > 0);
+    }
+
+    const where = {
+      AND: [
+        categories.length > 0 ? { categoryId: { in: categories } } : {},
+        types.length > 0 ? { typeId: { in: types } } : {},
+      ],
+    };
     const user: any = await getUserById(req.userId!);
     checkUserIfNotExist(user);
 
     const skip = (+page - 1) * +limit; //+limit is converting string to integer
     const options = {
+      where,
       skip,
       take: +limit + 1,
       select: {
@@ -69,10 +97,17 @@ export const getProductsByPagination = [
         description: true,
         price: true,
         updatedAt: true,
-        images: true,
+        images: {
+          select: {
+            id: true,
+            path: true,
+          },
+          take: 1, // limit to 1 image
+        },
+        status: true,
       },
       orderBy: {
-        updatedAt: "desc",
+        id: "desc",
       },
     };
     // const products = await getProductLists(options);
@@ -116,8 +151,33 @@ export const getInfiniteProductsByPagination = [
     const limit = req.query.limit || 5;
     const user: any = await getUserById(req.userId!);
     checkUserIfNotExist(user);
+    const category = req.query.category;
+    const type = req.query.type;
 
+    let categories: number[] = [];
+    let types: number[] = [];
+    if (category) {
+      categories = category
+        .toString()
+        .split(",")
+        .map((c) => Number(c))
+        .filter((c) => c > 0);
+    }
+    if (type) {
+      types = type
+        .toString()
+        .split(",")
+        .map((t) => Number(t))
+        .filter((t) => t > 0);
+    }
+    const where = {
+      AND: [
+        categories.length > 0 ? { categoryId: { in: categories } } : {},
+        types.length > 0 ? { typeId: { in: types } } : {},
+      ],
+    };
     const options = {
+      where,
       skip: lastCursor ? 1 : 0,
       take: +limit + 1,
       cursor: lastCursor ? { id: +lastCursor } : undefined,
@@ -128,8 +188,13 @@ export const getInfiniteProductsByPagination = [
         price: true,
         updatedAt: true,
         images: {
-          include: true,
+          select: {
+            id: true,
+            path: true,
+          },
+          take: 1, // limit to 1 image
         },
+        status: true,
       },
       orderBy: {
         id: "asc",
