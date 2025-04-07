@@ -13,6 +13,11 @@ import {
   getPost,
   getPostsByPagination,
 } from "../../../controllers/user/postController";
+import {
+  getInfiniteProductsByPagination,
+  getProduct,
+  getProductsByPagination,
+} from "../../../controllers/user/productController";
 
 const router = Router();
 
@@ -35,5 +40,9 @@ router.patch(
 router.get("/posts", auth, getPostsByPagination);
 router.get("/posts/infinite", auth, getInfinitePostsByPagination);
 router.get("/posts/:id", auth, getPost);
+
+router.get("/products", auth, getProductsByPagination);
+router.get("/products/infinite", auth, getInfiniteProductsByPagination);
+router.get("/products/:id", auth, getProduct);
 
 export default router;
