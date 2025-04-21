@@ -21,14 +21,15 @@ var corsOptions = {
     origin: any,
     callback: (err: Error | null, origin?: any) => void
   ) {
-    if (!origin) return callback(null, true); // allow request with no origin like mobile or curl or postman
-    if (whitelist.indexOf(origin) !== -1) {
+    // Allow requests with no origin ( like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (whitelist.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
     }
   },
-  credential: true, // allow cookies or authentication header
+  credentials: true, // Allow cookies or authorization header
 };
 
 app.use(morgan("dev")); // dev - format

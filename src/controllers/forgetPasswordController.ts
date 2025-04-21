@@ -31,7 +31,7 @@ export const requestOTP = [
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-        return next(createError(errors[0].msg,400,errorCode.invalid));
+      return next(createError(errors[0].msg, 400, errorCode.invalid));
     }
 
     let phone = req.body.phone;
@@ -75,7 +75,13 @@ export const requestOTP = [
         result = await updateOTP(otpRow.id, otpData);
       } else {
         if (otpRow.count === 3) {
-          return next(createError("OTP is allowed to request 3 times per day.",405,errorCode.overLimit));
+          return next(
+            createError(
+              "OTP is allowed to request 3 times per day.",
+              405,
+              errorCode.overLimit
+            )
+          );
         }
 
         const otpData = {
@@ -111,7 +117,7 @@ export const verifyOtpForPassword = [
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      return next(createError(errors[0].msg,400,errorCode.invalid));
+      return next(createError(errors[0].msg, 400, errorCode.invalid));
     }
 
     const { phone, otp, token } = req.body;
@@ -131,12 +137,12 @@ export const verifyOtpForPassword = [
       await updateOTP(otpRow.id, {
         count: 5,
       });
-      return next(createError("Invalid token",400,errorCode.invalid));
+      return next(createError("Invalid token", 400, errorCode.invalid));
     }
 
     const isOtpExpire = moment().diff(otpRow.updatedAt, "minutes") > 5; // if expires is more than 5 minute
     if (isOtpExpire) {
-      return next(createError("OTP is expired",400,errorCode.invalid));
+      return next(createError("OTP is expired", 400, errorCode.invalid));
     }
 
     const isMatchOpt = await compare(otp, otpRow.otp);
@@ -152,7 +158,7 @@ export const verifyOtpForPassword = [
           },
         });
       }
-      return next(createError("OTP is wrong",400,errorCode.invalid));
+      return next(createError("OTP is wrong", 400, errorCode.invalid));
     }
 
     const verifyToken = generateToken();
@@ -183,7 +189,7 @@ export const resetPassword = [
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      return next(createError(errors[0].msg,400,errorCode.invalid));
+      return next(createError(errors[0].msg, 400, errorCode.invalid));
     }
 
     const { phone, token, password } = req.body;
@@ -194,19 +200,23 @@ export const resetPassword = [
     checkOtpRow(otpRow);
 
     if (otpRow.error === 5) {
-      return next(createError("This attack may be an attack.",400,errorCode.attack));
+      return next(
+        createError("This attack may be an attack.", 400, errorCode.attack)
+      );
     }
 
     if (otpRow.verifyToken !== token) {
       await updateOTP(otpRow.id, {
         error: 5,
       });
-      return next(createError("Invalid token.",400,errorCode.invalid));
+      return next(createError("Invalid token.", 400, errorCode.invalid));
     }
 
     const isOtpExpire = moment().diff(otpRow.updatedAt, "minutes") > 10;
     if (isOtpExpire) {
-      return next(createError("Request expired.",400,errorCode.requestExpired));
+      return next(
+        createError("Request expired.", 400, errorCode.requestExpired)
+      );
     }
 
     const salt = await genSalt(10);

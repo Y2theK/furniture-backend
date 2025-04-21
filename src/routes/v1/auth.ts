@@ -6,12 +6,14 @@ import {
   logout,
   register,
   verifyOtp,
+  authCheck,
 } from "../../controllers/authController";
 import {
   requestOTP,
   verifyOtpForPassword,
   resetPassword,
 } from "../../controllers/forgetPasswordController";
+import auth from "../../middlewares/auth";
 
 const router = Router();
 
@@ -26,5 +28,7 @@ router.post("/logout", logout);
 router.post("/request-otp", requestOTP);
 router.post("/verify-otp-password", verifyOtpForPassword);
 router.post("/reset-password", resetPassword);
+
+router.get("/auth-check", auth, authCheck);
 
 export default router;

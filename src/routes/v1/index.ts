@@ -11,9 +11,9 @@ const router = Router();
 // when you use /api/v1 prefix for 2 routes like in health and auth routes, the middleware will run twice
 router.use("/api/v1", maintainance, healthRoutes);
 router.use("/api/v1", maintainance, AuthRoutes);
-router.use("/api/v1/user", maintainance, UserRoutes);
+router.use("/api/v1/users", maintainance, UserRoutes);
 router.use(
-  "/api/v1/admin",
+  "/api/v1/admins",
   maintainance,
   auth,
   authorize(true, "ADMIN"),

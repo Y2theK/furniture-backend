@@ -22,6 +22,9 @@ import jwt from "jsonwebtoken";
 import { errorCode } from "../config/errorCode";
 import { createError } from "../util/error";
 
+interface CustomRequest extends Request {
+  userId?: number;
+}
 export const register = [
   body("phone", "Invalid phone number")
     .trim()
@@ -32,7 +35,7 @@ export const register = [
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      return next(createError(errors[0].msg,400,errorCode.invalid));
+      return next(createError(errors[0].msg, 400, errorCode.invalid));
     }
 
     let phone = req.body.phone;
@@ -82,7 +85,13 @@ export const register = [
         result = await updateOTP(otpRow.id, otpData);
       } else {
         if (otpRow.count === 3) {
-          return next(createError( "OTP is allowed to request 3 times per day.",405,errorCode.overLimit));
+          return next(
+            createError(
+              "OTP is allowed to request 3 times per day.",
+              405,
+              errorCode.overLimit
+            )
+          );
         }
 
         const otpData = {
@@ -118,7 +127,7 @@ export const verifyOtp = [
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      return next(createError(errors[0].msg,400,errorCode.invalid));
+      return next(createError(errors[0].msg, 400, errorCode.invalid));
     }
 
     const { phone, otp, token } = req.body;
@@ -138,13 +147,12 @@ export const verifyOtp = [
       await updateOTP(otpRow.id, {
         count: 5,
       });
-      return next(createError("Invalid token",400,errorCode.invalid));
-
+      return next(createError("Invalid token", 400, errorCode.invalid));
     }
 
     const isOtpExpire = moment().diff(otpRow.updatedAt, "minutes") > 5; // if expires is more than 5 minute
     if (isOtpExpire) {
-      return next(createError("OTP is expired",400,errorCode.invalid));
+      return next(createError("OTP is expired", 400, errorCode.invalid));
     }
 
     const isMatchOpt = await compare(otp, otpRow.otp);
@@ -160,8 +168,7 @@ export const verifyOtp = [
           },
         });
       }
-      return next(createError("OTP is wrong",400,errorCode.invalid));
-
+      return next(createError("OTP is wrong", 400, errorCode.invalid));
     }
 
     const verifyToken = generateToken();
@@ -192,7 +199,7 @@ export const confirmPassword = [
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      return next(createError(errors[0].msg,400,errorCode.invalid));
+      return next(createError(errors[0].msg, 400, errorCode.invalid));
     }
 
     const { phone, token, password } = req.body;
@@ -204,20 +211,23 @@ export const confirmPassword = [
     checkOtpRow(otpRow);
 
     if (otpRow.error === 5) {
-      return next(createError("This attack may be an attack.",400,errorCode.attack));
-
+      return next(
+        createError("This attack may be an attack.", 400, errorCode.attack)
+      );
     }
 
     if (otpRow.verifyToken !== token) {
       await updateOTP(otpRow.id, {
         error: 5,
       });
-      return next(createError("Invalid token.",400,errorCode.invalid));
+      return next(createError("Invalid token.", 400, errorCode.invalid));
     }
 
     const isOtpExpire = moment().diff(otpRow.updatedAt, "minutes") > 10;
     if (isOtpExpire) {
-      return next(createError("Request expired.",400,errorCode.requestExpired));
+      return next(
+        createError("Request expired.", 400, errorCode.requestExpired)
+      );
     }
 
     const salt = await genSalt(10);
@@ -264,14 +274,16 @@ export const confirmPassword = [
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         maxAge: 15 * 60 * 1000,
+        path: "/",
       })
       .cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         maxAge: 30 * 24 * 60 * 60 * 1000,
+        path: "/",
       })
-      .status(200)
+      .status(201)
       .json({
         message: "Successfully created an account",
         userId: newUser.id,
@@ -289,7 +301,7 @@ export const login = [
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      return next(createError(errors[0].msg,400,errorCode.invalid));
+      return next(createError(errors[0].msg, 400, errorCode.invalid));
     }
 
     let phone = req.body.phone;
@@ -303,7 +315,13 @@ export const login = [
 
     // if user status is freeze
     if (user.status === "FREEZE") {
-      return next(createError("Your accound is temporary lock. Please contact us.",400,errorCode.accountFreeze));
+      return next(
+        createError(
+          "Your accound is temporary lock. Please contact us.",
+          400,
+          errorCode.accountFreeze
+        )
+      );
     }
     const isMatchPassword = await compare(password, user.password);
 
@@ -332,7 +350,7 @@ export const login = [
         await updateUser(user.id, userData);
       }
 
-      return next(createError("Invalid Credentials.",400,errorCode.invalid));
+      return next(createError("Invalid Credentials.", 400, errorCode.invalid));
     }
 
     // jwt token
@@ -370,12 +388,14 @@ export const login = [
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         maxAge: 15 * 60 * 1000, // 15 min
+        path: "/",
       })
       .cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        path: "/",
       })
       .status(200)
       .json({
@@ -385,6 +405,23 @@ export const login = [
   },
 ];
 
+export const authCheck = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const userId = req.userId;
+  const user = await getUserById(userId!);
+  checkUserIfNotExist(user);
+
+  res.status(200).json({
+    message: "You are authenticated user",
+    userId: user?.id,
+    userName: user?.firstName + " " + user?.lastName,
+    image: user?.image,
+  });
+};
+
 export const logout = async (
   req: Request,
   res: Response,
@@ -393,7 +430,13 @@ export const logout = async (
   const refreshToken = req.cookies ? req.cookies.refreshToken : null;
 
   if (!refreshToken) {
-    return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
+    return next(
+      createError(
+        "You are not an c authenticated user",
+        401,
+        errorCode.unauthenticated
+      )
+    );
   }
 
   // verify jwt access token
@@ -401,18 +444,36 @@ export const logout = async (
   try {
     decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!);
   } catch (err: any) {
-    return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
+    return next(
+      createError(
+        "You are not an c authenticated user",
+        401,
+        errorCode.unauthenticated
+      )
+    );
   }
 
-  if (!isNaN(decoded.id)) {
-    return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
+  if (isNaN(decoded.id)) {
+    return next(
+      createError(
+        "You are not an d authenticated user",
+        401,
+        errorCode.unauthenticated
+      )
+    );
   }
 
   const user: any = await getUserById(decoded.id);
   checkUserIfNotExist(user);
 
   if (user.phone !== decoded.phone) {
-    return next(createError("You are not an c authenticated user",401,errorCode.unauthenticated));
+    return next(
+      createError(
+        "You are not an e authenticated user",
+        401,
+        errorCode.unauthenticated
+      )
+    );
   }
 
   await updateUser(user.id, {
